@@ -26,12 +26,12 @@ _io = [
         IOStandard("LVCMOS33")
     ),
 
-    ("eth_clocks", 0,
+    ("eth_clocks", 1,
         Subsignal("tx", Pins("J1")),
         Subsignal("rx", Pins("J3")),
         IOStandard("LVCMOS33")
     ),
-    ("eth", 0,
+    ("eth", 1,
         Subsignal("rx_ctl", Pins("M3")),
         Subsignal("rx_data", Pins("L1 L3 M1 M2")),
         Subsignal("tx_ctl", Pins("E4")),
