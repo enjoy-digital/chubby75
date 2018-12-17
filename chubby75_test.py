@@ -68,7 +68,7 @@ class EthernetTestSoC(SoCCore):
     }
     csr_map.update(SoCCore.csr_map)
     def __init__(self, platform, eth_phy=0, mac_address=0x10e2d5000000, ip_address="192.168.1.50"):
-        sys_clk_freq = int(150e6)
+        sys_clk_freq = int(133e6)
         SoCCore.__init__(self, platform, sys_clk_freq, cpu_type=None, with_uart=False)
 
         # crg
