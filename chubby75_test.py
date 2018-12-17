@@ -67,7 +67,7 @@ class EthernetTestSoC(SoCCore):
         "ethcore": 12
     }
     csr_map.update(SoCCore.csr_map)
-    def __init__(self, platform, mac_address=0x10e2d5000000, ip_address="192.168.1.50"):
+    def __init__(self, platform, eth_phy=0, mac_address=0x10e2d5000000, ip_address="192.168.1.50"):
         sys_clk_freq = int(150e6)
         SoCCore.__init__(self, platform, sys_clk_freq, cpu_type=None, with_uart=False)
 
@@ -75,25 +75,24 @@ class EthernetTestSoC(SoCCore):
         self.submodules.crg = _CRG(platform, sys_clk_freq)
 
         # ethernet
-        self.submodules.ethphy = LiteEthPHYRGMII(platform.request("eth_clocks"),
-                                            platform.request("eth"))
+        self.submodules.ethphy = LiteEthPHYRGMII(platform.request("eth_clocks", eth_phy),
+                                            platform.request("eth", eth_phy))
         self.submodules.ethcore = LiteEthUDPIPCore(self.ethphy,
                                                    mac_address,
                                                    convert_ip(ip_address),
                                                    sys_clk_freq,
                                                    with_icmp=True)
         self.ethphy.crg.cd_eth_rx.clk.attr.add("keep")
-        #self.ethphy.crg.cd_eth_tx.clk.attr.add("keep")
         platform.add_period_constraint(self.ethphy.crg.cd_eth_rx.clk, period_ns(125e6))
-        #platform.add_period_constraint(self.ethphy.crg.cd_eth_tx.clk, period_ns(125e6))
         platform.add_false_path_constraints(
             self.crg.cd_sys.clk,
             self.ethphy.crg.cd_eth_rx.clk)
-        #platform.add_false_path_constraints(
-        #    self.crg.cd_sys.clk,
-        #    self.ethphy.crg.cd_eth_tx.clk)
         platform.add_source("gateware/rgmii_if.vhd")
 
+        # led blink
+        led_counter = Signal(32)
+        self.sync += led_counter.eq(led_counter + 1)
+        self.comb += platform.request("user_led").eq(led_counter[26])
 
 def main():
     platform = chubby75_platform.Platform()
