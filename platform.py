@@ -50,7 +50,7 @@ _io = [
     ("sdram_clock", 0, Pins("K11"), IOStandard("LVCMOS33"), Misc("SLEW=FAST")),
     ("sdram_clock", 1, Pins("K12"), IOStandard("LVCMOS33"), Misc("SLEW=FAST")),
     ("sdram", 0,
-        Subsignal("a", Pins("L16 M14 M16 K14 J12 J13 J11 H13 H11 G12")),
+        Subsignal("a", Pins("L16 M14 M16 K14 J12 J13 J11 H13 H11 G12 L14")),
         Subsignal("dq", Pins(
             "C15 C16 D14 E15 E16 F14 F16 G14",
             "G11 E12 H14 G16 F15 D16 B16 B15",
