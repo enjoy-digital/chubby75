@@ -14,7 +14,6 @@ from litedram.modules import _TechnologyTimings
 from litedram.modules import _SpeedgradeTimings
 from litedram.modules import SDRAMModule
 from litedram.phy import GENSDRPHY
-from litedram.core.controller import ControllerSettings
 
 import platform
 
@@ -102,9 +101,7 @@ class SDRAMTest(SoCSDRAM):
             sdram_module = M12L64322A(sys_clk_freq, "1:1")
             self.register_sdram(self.sdrphy,
                                 sdram_module.geom_settings,
-                                sdram_module.timing_settings,
-                                controller_settings=ControllerSettings(
-                                    with_refresh=False))
+                                sdram_module.timing_settings)
 
         # led blink
         led_counter = Signal(32)
