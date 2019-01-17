@@ -16,6 +16,8 @@ from liteeth.frontend.etherbone import LiteEthEtherbone
 
 import platform
 
+# crg
+# --------------------------------------------------------------------------------------------------
 
 class _CRG(Module):
     def __init__(self, platform, sys_clk_freq):
@@ -61,6 +63,8 @@ class _CRG(Module):
         self.specials += AsyncResetSynchronizer(self.cd_sys, ~pll_lckd | (por > 0))
         platform.add_period_constraint(self.cd_sys.clk, period_ns(sys_clk_freq))
 
+# soc
+# --------------------------------------------------------------------------------------------------
 
 class RGMIITest(SoCCore):
     csr_map = {
@@ -70,12 +74,17 @@ class RGMIITest(SoCCore):
     csr_map.update(SoCCore.csr_map)
     def __init__(self, platform, eth_phy=0, mac_address=0x10e2d5000000, ip_address="192.168.1.50"):
         sys_clk_freq = int(133e6)
+
+        # soc core
+        # ------------------------------------------------------------------------------------------
         SoCCore.__init__(self, platform, sys_clk_freq, cpu_type=None, with_uart=False)
 
         # crg
+        # ------------------------------------------------------------------------------------------
         self.submodules.crg = crg = _CRG(platform, sys_clk_freq)
 
         # 1gbps ethernet
+        # ------------------------------------------------------------------------------------------
         ethphy = LiteEthPHYRGMII(platform.request("eth_clocks", eth_phy),
                                  platform.request("eth", eth_phy))
         ethcore = LiteEthUDPIPCore(ethphy, mac_address, convert_ip(ip_address), sys_clk_freq)
@@ -84,10 +93,14 @@ class RGMIITest(SoCCore):
         platform.add_period_constraint(ethphy.crg.cd_eth_rx.clk, period_ns(125e6))
         platform.add_false_path_constraints(crg.cd_sys.clk, ethphy.crg.cd_eth_rx.clk)
 
-        # led blink
+        # leds
+        # ------------------------------------------------------------------------------------------
         led_counter = Signal(32)
         self.sync += led_counter.eq(led_counter + 1)
         self.comb += platform.request("user_led").eq(led_counter[26])
+
+# build
+# --------------------------------------------------------------------------------------------------
 
 def main():
     soc = RGMIITest(platform.Platform())
