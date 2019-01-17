@@ -6,6 +6,8 @@
 #include <uart.h>
 #include <console.h>
 
+#include "sdram_bist.h"
+
 static char *readstr(void)
 {
 	char c[2];
@@ -68,8 +70,10 @@ static void prompt(void)
 static void help(void)
 {
 	puts("Available commands:");
-	puts("help        - this command");
-	puts("reboot      - reboot CPU");
+	puts("help                            - this command");
+	puts("reboot                          - reboot CPU");
+	puts("");
+	puts("sdram_bist burst_length random  - stress & test SDRAM from HW");
 }
 
 static void reboot(void)
@@ -89,6 +93,8 @@ static void console_service(void)
 		help();
 	else if(strcmp(token, "reboot") == 0)
 		reboot();
+	else if(strcmp(token, "sdram_bist") == 0)
+		sdram_bist(atoi(get_token(&str)), atoi(get_token(&str)));
 	prompt();
 }
 

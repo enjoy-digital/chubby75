@@ -6,6 +6,7 @@ from fractions import Fraction
 from migen import *
 from migen.genlib.resetsync import AsyncResetSynchronizer
 
+from litex.soc.integration.soc_core import *
 from litex.soc.integration.soc_sdram import *
 from litex.soc.integration.builder import *
 from litex.soc.cores.clock import period_ns
@@ -14,9 +15,12 @@ from litedram.modules import _TechnologyTimings
 from litedram.modules import _SpeedgradeTimings
 from litedram.modules import SDRAMModule
 from litedram.phy import GENSDRPHY
+from litedram.frontend.bist import LiteDRAMBISTGenerator, LiteDRAMBISTChecker
 
 import platform
 
+# crg
+# --------------------------------------------------------------------------------------------------
 
 class _CRG(Module):
     def __init__(self, platform, sys_clk_freq):
@@ -75,6 +79,8 @@ class _CRG(Module):
             i_C0=self.cd_sys.clk, i_C1=~self.cd_sys.clk,
             o_Q=platform.request("sdram_clock", 0))
 
+# sdram module
+# --------------------------------------------------------------------------------------------------
 
 class M12L64322A(SDRAMModule):
     memtype = "SDR"
@@ -86,28 +92,46 @@ class M12L64322A(SDRAMModule):
     technology_timings = _TechnologyTimings(tREFI=64e6/4096, tWTR=(2, None), tCCD=(1, None), tRRD=(None, 10))
     speedgrade_timings = {"default": _SpeedgradeTimings(tRP=15, tRCD=15, tWR=15, tRFC=55, tFAW=None, tRAS=40)}
 
+# soc
+# --------------------------------------------------------------------------------------------------
 
 class SDRAMTest(SoCSDRAM):
+    csr_peripherals = [
+        "sdram_generator",
+        "sdram_checker"
+    ]
+    csr_map_update(SoCSDRAM.csr_map, csr_peripherals)
+
     def __init__(self, platform):
         sys_clk_freq = int(75e6)
-        SoCSDRAM.__init__(self, platform, clk_freq=sys_clk_freq,
-            cpu_type="lm32",
-            integrated_rom_size=0x8000)
 
+        # soc sdram
+        # ------------------------------------------------------------------------------------------
+        SoCSDRAM.__init__(self, platform, clk_freq=sys_clk_freq, integrated_rom_size=0x6000)
+
+        # crg
+        # ------------------------------------------------------------------------------------------
         self.submodules.crg = _CRG(platform, sys_clk_freq)
 
-        if not self.integrated_main_ram_size:
-            self.submodules.sdrphy = GENSDRPHY(platform.request("sdram"))
-            sdram_module = M12L64322A(sys_clk_freq, "1:1")
-            self.register_sdram(self.sdrphy,
-                                sdram_module.geom_settings,
-                                sdram_module.timing_settings)
+        # sdram
+        # ------------------------------------------------------------------------------------------
+        self.submodules.sdrphy = GENSDRPHY(platform.request("sdram"))
+        sdram_module = M12L64322A(sys_clk_freq, "1:1")
+        self.register_sdram(self.sdrphy, sdram_module.geom_settings, sdram_module.timing_settings)
 
-        # led blink
+        # sdram bist
+        # ------------------------------------------------------------------------------------------
+        self.submodules.sdram_generator = LiteDRAMBISTGenerator(self.sdram.crossbar.get_port())
+        self.submodules.sdram_checker = LiteDRAMBISTChecker(self.sdram.crossbar.get_port())
+
+        # leds
+        # ------------------------------------------------------------------------------------------
         led_counter = Signal(32)
         self.sync += led_counter.eq(led_counter + 1)
         self.comb += platform.request("user_led").eq(led_counter[26])
 
+# build
+# --------------------------------------------------------------------------------------------------
 
 def main():
     soc = SDRAMTest(platform.Platform())
