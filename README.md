@@ -1,7 +1,7 @@
 RV901T LED "Receiver Card"
 =========================
 
-<img src="doc/front.jpg" />
+<img src="doc/front_annotated.jpg" />
 
 This repository contains bits and pieces about the Linsn RV901T HUB75 LED driver card, also known as a "Receiver Card". Its stock function is to receive and forward framebuffer data using a proprietary protocol (from a "Sender Card") and blit out control signals to LED panels (via shields, like a HUB75 shield).
 
@@ -9,10 +9,20 @@ As it contains a user-reprogrammable Spartan 6 FPGA (LX16, 14k 'logic cells', 91
 
 **Chubby75** is a project to reverse engineer, document and provide tools based on this card.
 
+Documentation
+-------------
+
+* [Reverse engineered RV901T Hardware Documentation](doc/hardware.md)
+* [Reverse engineered HUB75B Hat Hardware Documentation](doc/hub75b_hat.md)
+* [Reverse engineered HUB7EB Hat Hardware Documentation](doc/hub75e_hat.md)
+* [Getting Started with the RV901T Board: JTAG Connector and LED blink](doc/getting_started/getting_started.md)
+
 Hardware
 --------
 
 There is [hardware documention](doc/hardware.md) available, which includes WIP information about mapping from the FPGA balls / IO into various peripherals on board and connectors.
+
+You can buy these boards from eBay, Aliexpress, Taobao. As of today (2019/01/26), these boards are around €18 (including S&H) on Aliexpress.
 
 Status
 ------
@@ -23,17 +33,17 @@ Status
    - [X] PHY0
    - [ ] PHY1 - *partially*
    - [X] J600
-   - [ ] J601
+   - [X] J601
    - [ ] JP5 - SPI flash connector?
+   - [X] JP4
    - [ ] JP2
    - [X] U100 - SDRAM
  - Migen integration:
-   - [X] Platform Defintion
+   - [X] Platform Defintion (`platform.py`)
  - LiteX integration
-   - [ ] Sample project with PicoRV32
+   - [X] Sample project (`sdram_test.py`)
  - LiteEth integration:
-   - [X] Spartan 6 RGMI PHY interface
-   - [ ] Sample project
+   - [X] Sample project (`rgmii_test.py`)
 
 Acknowledgments
 ---------------
@@ -42,7 +52,7 @@ Thanks to Niklas Fauth and Jan Henrik for donating two boards and partially trac
 
 Thanks to carrotIndustries for assisting with the preliminary RE process at Glühweinprogrammiernacht 2018.
 
-Thanks to enjoy-digital for reverse engineering the RGMII interface.
+Thanks to enjoy-digital for reverse engineering the RGMII interface, implementing an S6 RGMII PHY interface, and the sample target files.
 
 Thanks to jeanthom for reverse engineering the SDRAM interface.
 
