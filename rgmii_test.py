@@ -7,17 +7,14 @@ from migen.genlib.resetsync import AsyncResetSynchronizer
 
 from litex.soc.integration.soc_core import *
 from litex.soc.integration.builder import *
-from litex.soc.cores.clock import period_ns
 
-from liteeth.common import *
 from liteeth.phy.s6rgmii import LiteEthPHYRGMII
 from liteeth.core import LiteEthUDPIPCore
 from liteeth.frontend.etherbone import LiteEthEtherbone
 
 import platform
 
-# crg
-# --------------------------------------------------------------------------------------------------
+# CRG ----------------------------------------------------------------------------------------------
 
 class _CRG(Module):
     def __init__(self, platform, sys_clk_freq):
@@ -61,49 +58,45 @@ class _CRG(Module):
         self.comb += self.cd_por.clk.eq(self.cd_sys.clk)
         self.specials += AsyncResetSynchronizer(self.cd_por, reset)
         self.specials += AsyncResetSynchronizer(self.cd_sys, ~pll_lckd | (por > 0))
-        platform.add_period_constraint(self.cd_sys.clk, period_ns(sys_clk_freq))
+        platform.add_period_constraint(self.cd_sys.clk, 1e9/sys_clk_freq)
 
-# soc
-# --------------------------------------------------------------------------------------------------
+# RGMIITest ----------------------------------------------------------------------------------------
 
-class RGMIITest(SoCCore):
-    csr_map = {
-        "ethphy":  11,
-        "ethcore": 12
-    }
-    csr_map.update(SoCCore.csr_map)
+class RGMIITest(SoCMini):
     def __init__(self, platform, eth_phy=0, mac_address=0x10e2d5000000, ip_address="192.168.1.50"):
         sys_clk_freq = int(133e6)
 
-        # soc core
-        # ------------------------------------------------------------------------------------------
-        SoCCore.__init__(self, platform, sys_clk_freq, cpu_type=None, with_uart=False)
+        # SoCMini ----------------------------------------------------------------------------------
+        SoCMini.__init__(self, platform, sys_clk_freq)
 
-        # crg
-        # ------------------------------------------------------------------------------------------
+        # CRG --------------------------------------------------------------------------------------
         self.submodules.crg = crg = _CRG(platform, sys_clk_freq)
 
-        # 1gbps ethernet
-        # ------------------------------------------------------------------------------------------
-        ethphy = LiteEthPHYRGMII(platform.request("eth_clocks", eth_phy),
-                                 platform.request("eth", eth_phy))
-        ethcore = LiteEthUDPIPCore(ethphy, mac_address, convert_ip(ip_address), sys_clk_freq)
+        # 1 Gbps Ethernet --------------------------------------------------------------------------
+        # phy
+        ethphy = LiteEthPHYRGMII(
+            clock_pads = platform.request("eth_clocks", eth_phy),
+            pads       = platform.request("eth", eth_phy))
+        # core
+        ethcore = LiteEthUDPIPCore(
+            phy         = ethphy,
+            mac_address = mac_address,
+            ip_address  = ip_address,
+            clk_freq    = sys_clk_freq)
         self.submodules += ethphy, ethcore
-        ethphy.crg.cd_eth_rx.clk.attr.add("keep")
-        platform.add_period_constraint(ethphy.crg.cd_eth_rx.clk, period_ns(125e6))
+        # timing constraints
+        platform.add_period_constraint(ethphy.crg.cd_eth_rx.clk, 1e9/125e6)
         platform.add_false_path_constraints(crg.cd_sys.clk, ethphy.crg.cd_eth_rx.clk)
 
-        # leds
-        # ------------------------------------------------------------------------------------------
-        led_counter = Signal(32)
-        self.sync += led_counter.eq(led_counter + 1)
-        self.comb += platform.request("user_led").eq(led_counter[26])
+        # Led --------------------------------------------------------------------------------------
+        counter = Signal(32)
+        self.sync += counter.eq(counter + 1)
+        self.comb += platform.request("user_led").eq(counter[26])
 
-# build
-# --------------------------------------------------------------------------------------------------
+# Build --------------------------------------------------------------------------------------------
 
 def main():
-    soc = RGMIITest(platform.Platform())
+    soc     = RGMIITest(platform.Platform())
     builder = Builder(soc, output_dir="build")
     builder.build()
 
